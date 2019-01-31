@@ -1,0 +1,385 @@
+---
+title: "EDA-Technical Appendix-Quick Project"
+author: "Wei Li & Florence Yan"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: yes
+    toc_depth: '3'
+  html_notebook:
+    number_sections: yes
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+---
+
+```{r echo = FALSE}
+# Clear environment of variables and functions
+rm(list = ls(all = TRUE)) 
+
+# Clear environmet of packages
+if(is.null(sessionInfo()$otherPkgs) == FALSE)lapply(paste("package:", names(sessionInfo()$otherPkgs), sep=""), detach, character.only = TRUE, unload = TRUE)
+
+```
+
+# Load packages "tidyverse" and "ggplot2"
+```{r warning=FALSE, message=FALSE}
+library(tidyverse)
+library(ggplot2)
+```
+
+# Load data
+```{r}
+# load data
+sale <- read.csv('5210_W19_QP1_Data.csv')
+
+# review data
+str(sale) 
+```
+
+**Findings:**
+
++ The data are in correct types. 
+
++ There are 9994 observations.
+
++ There are 13 variables.
+
++ Unit price and total cost are missing in the columns and can be calculated.
+
+```{r}
+summary(sale)
+```
+
+**Conclusion found from the observation:**
+
++ There isn't missing values. We assume the data set is complete and clean.
+
++ There are returned customers.
+
++ West area has the largest number of order records, while south area the smallest.
+
++ Office supplies is the majority category.
+
++ There is great loss in Profit. We might want to find out the cause of the loss.
+
+# Base EDA
+## Univariate non-graphical: Categorical
+```{r}
+region_tab <- rbind(table(sale$Region),
+                    round(prop.table(table(sale$Region)), 2))
+row.names(region_tab) <- c('Count', 'Proportion')
+region_tab
+```
+
+Most number of sales in West, least in South.
+
+```{r}
+category_tab <- rbind(table(sale$Category),
+                    round(prop.table(table(sale$Category)), 2))
+row.names(category_tab) <- c("Count", "Proportion")
+category_tab
+```
+
+Office supplies has the largest number in orders.
+
+```{r}
+subcategory_tab <- rbind(table(sale$Sub.Category),
+                    round(prop.table(table(sale$Sub.Category)), 2))
+row.names(subcategory_tab) <- c("Count", "Proportion")
+subcategory_tab
+```
+
++ Binders sell most.
+
++ Copiers and Machines sell least.
+
+## Univaviate graphical: Categorical
+```{r}
+barplot(table(sale$Region), main = "Order numbers in regions")
+```
+
+The sales records in West is almost twice of the South.
+
+```{r}
+barplot(table(sale$Category), 
+        main = "Order numbers of categories")
+```
+
+**Most of the orders are in Office Supplies Category. Here are the possible reasons:**
+
++ The store's name is "Office Mate", so most of the customers would come here with specific shopping purpose for office supplies.
+
++ The price of the products in office supplies category could be much lower than those in furniture and technology.
+
++ The office supplies products consume faster than furnitures or technology products.
+
+```{r}
+barplot(table(sale$Sub.Category), 
+        main = "Order numbers of sub-categories", 
+        las = 1, horiz = TRUE)
+```
+
+This only shows the order numbers of each sub-category. However, we still need to explore more about the profits.
+
+## Univariate non-graphical: Quantitative
+```{r}
+summary(sale)
+```
+
+Three numerical and one integer variables differ in median and mean, indicating there should be skewness.
+
+## Univariate graphical: Quantitative
+**histograms**
+```{r}
+par(mfrow = c(2, 2))
+hist(sale$Quantity)
+hist(sale$Revenue)
+hist(sale$Discount)
+hist(sale$Profit)
+```
+
+**Findings:**
+
++ Most of the sales are small in quantity, revenue and profit.
+
++ Most frequent discount is around 0.15-0.2.
+
++ Most of the orders are profitable while there are a certain number of orders lost money.
+
+**Boxplots**
+```{r}
+par(mfrow = c(2, 2))
+boxplot(sale$Quantity, main = "Quantity")
+boxplot(sale$Revenue, main = "Revenue")
+boxplot(sale$Discount, main = "Discount")
+boxplot(sale$Profit, main = "Profit")
+```
+
+## Multivariate non-graphical: Categorical
+```{r}
+# Proportion of the order quantity of the three categories in four regions.
+round(addmargins(prop.table(xtabs(~ Region + Category,  data = sale))), 2)
+```
+
++ We can reach the similar findings as those in previous graphical analysis.
+
+## Multivariate graphical: Categorical
+```{r}
+plot(sale$Region, sale$Category)
+```
+
+Cannot tell much from the graph.
+
+## Multivariate non-graphical: Quantitative
+```{r}
+# correlations between quantitative variables:
+cor(sale[, 10:13])
+```
+
++ Revenue and Profit are most correlated among these variables.
+
++ Discount and Quantity are least correlated.
+
+## Multivariate graphical code – Quantitative
+```{r}
+plot(sale[, 10:13])
+```
+```{r warning = FALSE}
+library(psych)
+pairs.panels(sale[, 10:13])
+```
+
+```{r}
+plot(sale$Discount, sale$Profit, col = sale$Region)
+legend(x = "topright",  
+       legend = levels(sale$Region), 
+       col = c(1:nlevels(sale$Region)), 
+       pch = 1) 
+```
+
+Higher discount might bring lower profit.
+
+## Multivariate non-graphical – Categorical and Quantitative
+```{r}
+profit_sum <- round(rbind(
+  tapply(sale[sale$Region == "Central",]$Profit, sale[sale$Region == "Central",]$Sub.Category, sum),
+  tapply(sale[sale$Region == "East",]$Profit, sale[sale$Region == "East",]$Sub.Category, sum),
+  tapply(sale[sale$Region == "South",]$Profit, sale[sale$Region == "South",]$Sub.Category, sum),
+  tapply(sale[sale$Region == "West",]$Profit, sale[sale$Region == "West",]$Sub.Category, sum)
+  ), 0)
+row.names(profit_sum) <- c("Central", "East", "South", "West")
+profit_sum
+```
+
+**Indicating:** 
+
++ Tables and Bookcases are big profit losses.
+
++ Copiers, Phones, and Accessories are most profitable.
+
+```{r}
+profit_med <- round(rbind(
+  tapply(sale[sale$Region == "Central",]$Profit, sale[sale$Region == "Central",]$Sub.Category, median),
+  tapply(sale[sale$Region == "East",]$Profit, sale[sale$Region == "East",]$Sub.Category, median),
+  tapply(sale[sale$Region == "South",]$Profit, sale[sale$Region == "South",]$Sub.Category, median),
+  tapply(sale[sale$Region == "West",]$Profit, sale[sale$Region == "West",]$Sub.Category, median)
+  ),
+  0)
+row.names(profit_med) <- c("Central", "East", "South", "West")
+profit_med
+```
+
+We can see the same pattern as the previous one.
+
+## Multivariate graphical: Categorical and Quantitative
+```{r}
+keep_cat <- c("Accessories", "Binders", "Copiers", "Machines", "Paper", "Phones", "Tables")
+small_tab <- profit_sum[, keep_cat]
+barplot(small_tab, 
+        beside = TRUE, 
+        horiz = TRUE, 
+        las = 2, 
+        col = c(1:4),
+        main = "Total profit for the subcategories in 4 regions",
+        xlab = "Total profit by region and subcategory",
+        adj = 0)
+axis(1, at=axTicks(1), labels=sprintf("$%s", axTicks(1)), las = 2) # add $ to x-axis tics
+legend(x = "topright",  
+       legend = levels(sale$Region), 
+       col = c(1:4),
+       pch = 15)
+```
+
+**Conclusion**
+
++ Stop or reduce selling Tables.
+
++ Products to increase varies by region.
+
++ There is large potential in the copiers sale in East region. Need to figure out the reason why the sale there is under performance.
+
++ Need to figure out why the sale of binders is under performed in Central area.
+
+# Two questions generated from basic EDA
++ What are the most possible subcategories that can improve profits in the 4 regions?
+
++ How does Discount affect profits?
+
+# EDA through tidyverse to answer the two questions
+## Q1: what are the most profit-potential subcategories in the for regions?
+As we know this data set is from a big market formed by 4 regions. So there must be some similar characteristics among the 4 regions and thus they are comparable. So if one subcategory's profit in one region is much lower than others, we can encourage the manager in this region to learn the sale strategies and methods for this subcategory from high-profit regions; likely, if the profit of a certain subcategory is higher than other regions, the manager also can share experience with managers in other areas. So that they can work together to improve the whole company's profit.
+```{r}
+# See the most and least profitable subcategories in South region.
+# First we create a table which contains the max and min profit of each subcategory, as a reference.
+max_min <- sale %>%
+  select(c(Category, Sub.Category, Region, Profit)) %>%
+  group_by(Sub.Category, Region) %>%
+  summarise(sum_prof = sum(Profit)) %>%
+  group_by(Sub.Category) %>%
+  summarise(max_prof = max(sum_prof), 
+            min_prof = min(sum_prof))
+
+# Then we create a table to show the real profit of each subcategory in South.
+south <- sale %>% 
+  select(c(Sub.Category, Region, Profit)) %>% 
+  filter(Region == 'South') %>% 
+  group_by(Sub.Category) %>% 
+  summarise(south_prof = sum(Profit))
+
+# Then we can see the profitability levels of each subcategory in south area.
+south %>% 
+  left_join(max_min, by = 'Sub.Category') %>% 
+  mutate(south_level = ifelse(south_prof == max_prof, 'Best', 
+                              ifelse(south_prof == min_prof, 'Worst', 'Normal')))
+```
+
+**Findings for South region:**
+
++ The following subcategory, Accessories, Art, Copiers, Envelopes, Fasteners, Labels, Paper are under performing in South area. They make the least money compared with other 3 regions.
+
++ The Bookcases subcategory is most profitable among the 4 regions.
+
++ This analysis framework can be applied to the other three retions.
+
+```{r}
+# max_prof - min_prof = diff: reflect the 5 most wide-ranged profiting subcategories in 4 regions.
+range_subCat <- max_min %>% 
+  mutate(diff = max_prof - min_prof) %>% 
+  arrange(desc(diff)) %>% 
+  top_n(4)
+
+subCat_to_see <- range_subCat$Sub.Category # 4 categories of biggest interest to managers
+```
+
++ Since there is wide range of profits among the 4 regions in these subcategories, managers might be most interested in these subcategories.
+
++ The idea is that if there is one region can make great profit in this subcategory, the other regions might also have potential to achieve the similar goal.
+
+```{r}
+sale %>% 
+  group_by(Sub.Category, Region) %>% 
+  summarise(prof_sum = sum(Profit)) %>% 
+  filter(Sub.Category %in% subCat_to_see) %>% 
+  ggplot(aes(Sub.Category, prof_sum, fill = Region))+
+  geom_bar(stat = 'identity',
+           position = 'dodge') +
+  coord_flip() +
+  ylab('Total profit in the 4 subcategories') +
+  xlab('4 subcategories that most interest managers') +
+  ggtitle("Categories with widest profit range",
+          sub = "The lower-profit area might learn from the highest-profit area about the sale \nstrategies and methods.") 
+
+```
+
+**Conclusions: **
+
++ The subcategories that the managers in the 4 regions might be most interested are: Tables, Furnishings, Copiers, Binders.
+
++ South, east, and central regions need to learn how to improve profits of tables. Or we can reduce table sales, since 3/4 of the regions are losing money.
+
++ Central region need to find out the reasons for the negative profit in the Furnishings and Binders sales.
+
++ South region might learn how to improve Copiers profits by learnig from other three regions.
+
++ Generally speaking, west and east regions achieved good profits.
+
+## Q2: How does discount affect profits?
+```{r}
+sale %>%
+  group_by(Region) %>%
+  summarise(tot_profit_region = sum(Profit)) %>%
+  ggplot(aes(Region, tot_profit_region, fill = Region)) +
+  geom_bar(stat="identity", position = "dodge")
+  
+```
+
++ As we see the most profitable region is West. While it is not the one which holds the biggest discount. Thus, we can conclude that more discount doesn't contribute more profits. 
+
+
+```{r}
+sale %>%
+  ggplot(aes(x=Discount, Profit, color = Region)) +
+  geom_point()
+```
+
++ Furthermore, if we compare the Profit/Discount with the Revenue/Discount, we found that one the Technology category in South region with very high revenue lost money with 80% off discount, which is the highest discount throughout four regions. Similiar situation also happened in Central region, which is the one holds least profit. They lost money by with a high discount.
+
+In this case, we suggest the compnay adjust the discount strategy.
+
+
+```{r}
+sale %>%
+  ggplot(aes(x=Discount, Revenue, color = Region)) +
+  geom_point()
+```
+
+
+```{r}
+sale %>%
+  filter(Region == "South") %>%
+  select(c(Region, Category, Revenue)) %>%
+  group_by(Category) %>%
+  summarise( max_revenue = max(Revenue))
+
+```

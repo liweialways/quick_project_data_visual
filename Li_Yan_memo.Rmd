@@ -1,0 +1,88 @@
+---
+output: html_document
+---
+
+#### **To: Manager Chris Lee**  
+  
+#### **From: Wei Li & Florence Yan**  
+  
+#### **Date: `r format(Sys.time(), '%B %d, %Y')`**   
+  
+#### **Subject: Office product profitability analysis**  
+
+***
+
+```{r echo = FALSE}
+# Course: BUAN 5210
+# Title: Profitability analysis
+# Purpose: To increase overall profit of the whole company
+# Date: Jan 30, 2019
+# Author: Wei Li & Florence Yan
+
+```
+
+
+```{r echo = FALSE}
+# Clear environment of variables and functions
+rm(list = ls(all = TRUE)) 
+
+# Clear environmet of packages
+if(is.null(sessionInfo()$otherPkgs) == FALSE)lapply(paste("package:", names(sessionInfo()$otherPkgs), sep=""), detach, character.only = TRUE, unload = TRUE)
+
+```
+
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+# Load librarys
+library(tidyverse)
+library(ggplot2)
+```
+
+
+```{r echo = FALSE}
+# Load saved image of the office Tech Appendix workspace
+load(".RData")
+```
+
+
+Our company has achieved good success since 2012. We have built good reputations and trust among customers. We feel proud of our work and company. However, we are now facing increasingly fierce competitions from online retailers, such as Amazon, Ebay or other platforms. What we can do is to keep our advantages and improve the aspects where we are not good at. So it is worthwhile to analyze the historical sale data to find out possible monetization opportunities and identify potential drawbacks. In this study, our team explored the possible ways to improve profitability and the unseen problems we might have. After diving into the data, we mainly felt interested in two questions: one is what are the most profit-potential subcategories in the for regions and the other is how does discount affect profits? Then we are going to share our analysis results for the two reasons.
+
+Firstly, we find out 4 subcategories that might interest our regional managers most: Tables, Furnishings, Copiers, Binders. Because the profits made in the four subcategories have the widest range among the four regions. Since the four regions are geographically close to each other, they share many similar characteristics in market potentials and thus can be comparable. So if the profits of one subcategory differ too much among the four regions, the highest-profiting region may share the sale strategies with other regions and thus the overall profit of the whole company might be able to improve. So we present the graph below to show the profitability of the four regions in the four subcategories. According to this, our suggestions are as follows. First, south, east, and central regions need to learn how to improve profits of tables. Or table sales can be reduced, since 3/4 of the regions are losing money. Secondly, central region need to find out the reasons for the negative profit in the Furnishings and Binders sales. Thirdly, south region might learn how to improve Copiers profits by learnig from other three regions. Fourthly, generally speaking, west and east regions achieved good profits. Managers in the two regions might share their sale stategies.
+
+```{r echo = FALSE, include = TRUE, message = FALSE}
+range_subCat <- max_min %>% 
+  mutate(diff = max_prof - min_prof) %>% 
+  arrange(desc(diff)) %>% 
+  top_n(4)
+
+subCat_to_see <- range_subCat$Sub.Category # 4 categories of biggest interest to managers
+
+sale %>% 
+  group_by(Sub.Category, Region) %>% 
+  summarise(prof_sum = sum(Profit)) %>% 
+  filter(Sub.Category %in% subCat_to_see) %>% 
+  ggplot(aes(Sub.Category, prof_sum, fill = Region))+
+  geom_bar(stat = 'identity',
+           position = 'dodge') +
+  coord_flip() +
+  ylab('Total profit in the 4 subcategories') +
+  xlab('4 subcategories that most interest managers') +
+  ggtitle("Categories with widest profit range",
+          sub = "The lower-profit area might learn from the highest-profit area about the sale \nstrategies and methods.") 
+
+```
+
+Our second finding shows that over half of our sales across four regions have discounts. Moreover, regions with high profits like West doesn't offer many discounts. Thus, we think regions with low profits should adjust their discount strategies since more discounts didn't more profits. Specifically, the two figures below shows that the sales of Technology in Central region which offered the highest discount as eighty percent in fact lost the most money across four regions.We recommand that company should find other ways like reducing the sales of unpopular categories and focusing on others with good performances last year to increase profits.
+
+```{r echo = FALSE, include = TRUE}
+sale %>%
+  ggplot(aes(x=Discount, Profit, color = Region)) +
+  geom_point() + ggtitle("Profit vs. Discount", 
+                         sub = "The Profit trend is going down as Piscount increases.")
+```
+
+Please do not hesitate to contact me if you have questions or would like to discuss the analysis further. I can also provide my complete analysis with data and code if you would like more detail.
+
+Best regards,
+
+Florence Yan & Wei Li
